@@ -55,13 +55,19 @@ public class ArcRecordUtils {
     ARCRecordMetaData meta = record.getMetaData();
 
     String metaline = meta.getUrl() + " " + meta.getIp() + " " + meta.getDate() + " "
-        + meta.getMimetype() + " " + (int) meta.getLength();
+        + meta.getMimetype() + " " + (int) meta.getLength() + "\n";
+    String versionEtc = "";
 
+    if (meta.getOffset() == 0) {
+      versionEtc = meta.getVersion().replace(".", " ") +
+              " InternetArchive\n" + // Should have meta.getOrigin()
+              "URL IP-address Archive-date Content-type Archive-length\n";
+      metaline += versionEtc;
+    }
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     DataOutputStream dout = new DataOutputStream(baos);
     dout.write(metaline.getBytes());
-    dout.write("\n".getBytes());
-    copyStream(record, (int) meta.getLength(), true, dout);
+    copyStream(record, (int) meta.getLength() - versionEtc.length(), true, dout);
 
     return baos.toByteArray();
   }
