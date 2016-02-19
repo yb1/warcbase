@@ -84,7 +84,15 @@ public class ArcRecordUtils {
 
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     DataOutputStream dout = new DataOutputStream(baos);
-    copyStream(record, (int) meta.getLength(), true, dout);
+    String versionEtc = "";
+
+    if (meta.getOffset() == 0) {
+      versionEtc = meta.getVersion().replace(".", " ") +
+              " InternetArchive\n" + // Should have meta.getOrigin()
+              "URL IP-address Archive-date Content-type Archive-length\n";
+      dout.write(versionEtc.getBytes());
+    }
+    copyStream(record, (int) meta.getLength() - versionEtc.length(), true, dout);
 
     return baos.toByteArray();
   }
