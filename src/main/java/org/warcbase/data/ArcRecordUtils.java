@@ -60,7 +60,7 @@ public class ArcRecordUtils {
 
     if (meta.getOffset() == 0) {
       versionEtc = meta.getVersion().replace(".", " ") +
-              " InternetArchive\n" + // Should have meta.getOrigin()
+              " " + meta.getOrigin() + "\n" + 
               "URL IP-address Archive-date Content-type Archive-length\n";
       metaline += versionEtc;
     }
