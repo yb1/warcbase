@@ -45,7 +45,7 @@ class KMeansArchiveCluster(clusters: KMeansModel, tfidf: RDD[Vector], lemmatized
     accum.value
   }
 
-  def computeLDA(output: String, sc: SparkContext, numTopics: Int = 20, numWordsPerTopic: Int = 20, maxIteration: Int = 20) = {
+  def computeLDA(output: String, sc: SparkContext, numTopics: Int = 20, numWordsPerTopic: Int = 20, maxIteration: Int = 2) = {
     val accum = sc.accumulator(sc.emptyRDD[(Int, (Long, Seq[String], Double))]:
       RDD[(Int, (Long, Seq[String], Double))])(new RddAccumulator[(Int, (Long, Seq[String], Double))])
     println("1")
