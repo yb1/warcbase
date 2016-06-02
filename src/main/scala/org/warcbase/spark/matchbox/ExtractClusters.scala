@@ -1,5 +1,11 @@
 package org.warcbase.spark.matchbox
 
+import java.io.PrintWriter
+
+import cc.mallet.pipe.iterator.StringArrayIterator
+import cc.mallet.pipe.{Pipe, SerialPipes, TokenSequence2FeatureSequence, CharSequence2TokenSequence}
+import cc.mallet.topics.ParallelTopicModel
+import cc.mallet.types.InstanceList
 import org.apache.spark.{AccumulatorParam, SparkContext}
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.mllib.clustering.KMeans
@@ -23,6 +29,7 @@ import org.apache.spark.mllib.linalg.Vector
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{Row}
 
+
 object ExtractClusters {
   implicit object MapAccumulator extends AccumulatorParam[Map[Int, Double]] {
     def zero(m: Map[Int, Double]) = Map()
@@ -43,35 +50,44 @@ object ExtractClusters {
   }
 
   def apply(records: RDD[ArchiveRecord], sc: SparkContext, k: Int = 20, maxIterations: Int = 30, numVocabs: Int = 10000,
-            testK: Boolean=false, maxK: Int= 50, minDocThreshold: Int=5, stepK: Int=10, minK: Int=5, sqlContext:SQLContext) = {
+            testK: Boolean=false, maxK: Int= 50, minDocThreshold: Int=5, stepK: Int=10, minK: Int=5) = {
     val stopwords = sc.broadcast(Set("a", "as", "able", "about", "above", "according", "accordingly", "across", "actually", "after", "afterwards", "again", "against", "aint", "all", "allow", "allows", "almost", "alone", "along", "already", "also", "although", "always", "am", "among", "amongst", "an", "and", "another", "any", "anybody", "anyhow", "anyone", "anything", "anyway", "anyways", "anywhere", "apart", "appear", "appreciate", "appropriate", "are", "arent", "around", "as", "aside", "ask", "asking", "associated", "at", "available", "away", "awfully", "be", "became", "because", "become", "becomes", "becoming", "been", "before", "beforehand", "behind", "being", "believe", "below", "beside", "besides", "best", "better", "between", "beyond", "both", "brief", "but", "by", "cmon", "cs", "came", "can", "cant", "cannot", "cant", "cause", "causes", "certain", "certainly", "changes", "clearly", "co", "com", "come", "comes", "concerning", "consequently", "consider", "considering", "contain", "containing", "contains", "corresponding", "could", "couldnt", "course", "currently", "definitely", "described", "despite", "did", "didnt", "different", "do", "does", "doesnt", "doing", "dont", "done", "down", "downwards", "during", "each", "edu", "eg", "eight", "either", "else", "elsewhere", "enough", "entirely", "especially", "et", "etc", "even", "ever", "every", "everybody", "everyone", "everything", "everywhere", "ex", "exactly", "example", "except", "far", "few", "ff", "fifth", "first", "five", "followed", "following", "follows", "for", "former", "formerly", "forth", "four", "from", "further", "furthermore", "get", "gets", "getting", "given", "gives", "go", "goes", "going", "gone", "got", "gotten", "greetings", "had", "hadnt", "happens", "hardly", "has", "hasnt", "have", "havent", "having", "he", "hes", "hello", "help", "hence", "her", "here", "heres", "hereafter", "hereby", "herein", "hereupon", "hers", "herself", "hi", "him", "himself", "his", "hither", "hopefully", "how", "howbeit", "however", "i", "id", "ill", "im", "ive", "ie", "if", "ignored", "immediate", "in", "inasmuch", "inc", "indeed", "indicate", "indicated", "indicates", "inner", "insofar", "instead", "into", "inward", "is", "isnt", "it", "itd", "itll", "its", "its", "itself", "just", "keep", "keeps", "kept", "know", "knows", "known", "last", "lately", "later", "latter", "latterly", "least", "less", "lest", "let", "lets", "like", "liked", "likely", "little", "look", "looking", "looks", "ltd", "mainly", "many", "may", "maybe", "me", "mean", "meanwhile", "merely", "might", "more", "moreover", "most", "mostly", "much", "must", "my", "myself", "name", "namely", "nd", "near", "nearly", "necessary", "need", "needs", "neither", "never", "nevertheless", "new", "next", "nine", "no", "nobody", "non", "none", "noone", "nor", "normally", "not", "nothing", "novel", "now", "nowhere", "obviously", "of", "off", "often", "oh", "ok", "okay", "old", "on", "once", "one", "ones", "only", "onto", "or", "other", "others", "otherwise", "ought", "our", "ours", "ourselves", "out", "outside", "over", "overall", "own", "particular", "particularly", "per", "perhaps", "placed", "please", "plus", "possible", "presumably", "probably", "provides", "que", "quite", "qv", "rather", "rd", "re", "really", "reasonably", "regarding", "regardless", "regards", "relatively", "respectively", "right", "said", "same", "saw", "say", "saying", "says", "second", "secondly", "see", "seeing", "seem", "seemed", "seeming", "seems", "seen", "self", "selves", "sensible", "sent", "serious", "seriously", "seven", "several", "shall", "she", "should", "shouldnt", "since", "six", "so", "some", "somebody", "somehow", "someone", "something", "sometime", "sometimes", "somewhat", "somewhere", "soon", "sorry", "specified", "specify", "specifying", "still", "sub", "such", "sup", "sure", "ts", "take", "taken", "tell", "tends", "th", "than", "thank", "thanks", "thanx", "that", "thats", "thats", "the", "their", "theirs", "them", "themselves", "then", "thence", "there", "theres", "thereafter", "thereby", "therefore", "therein", "theres", "thereupon", "these", "they", "theyd", "theyll", "theyre", "theyve", "think", "third", "this", "thorough", "thoroughly", "those", "though", "three", "through", "throughout", "thru", "thus", "to", "together", "too", "took", "toward", "towards", "tried", "tries", "truly", "try", "trying", "twice", "two", "un", "under", "unfortunately", "unless", "unlikely", "until", "unto", "up", "upon", "us", "use", "used", "useful", "uses", "using", "usually", "value", "various", "very", "via", "viz", "vs", "want", "wants", "was", "wasnt", "way", "we", "wed", "well", "were", "weve", "welcome", "well", "went", "were", "werent", "what", "whats", "whatever", "when", "whence", "whenever", "where", "wheres", "whereafter", "whereas", "whereby", "wherein", "whereupon", "wherever", "whether", "which", "while", "whither", "who", "whos", "whoever", "whole", "whom", "whose", "why", "will", "willing", "wish", "with", "within", "without", "wont", "wonder", "would", "would", "wouldnt", "yes", "yet", "you", "youd", "youll", "youre", "youve", "your", "yours", "yourself", "yourselves", "zero"))
     val rec = records.keepValidPages().persist()
+    val ob1 = rec.map(q=>Jsoup.parse(q.getContentString).body().text()).collect()
 
-    val lemmatized = rec.mapPartitions(r => {
-      val stemmer = new EnglishStemmer()
-      stemmer.stem()
-      r.map(q => (q.getUrl, getLemmas(q, stemmer, stopwords)))
-    }).persist()
+    val pipeList: java.util.ArrayList[Pipe] = new java.util.ArrayList[Pipe]
 
-    val (corpus, vocabArray, actualNumTokens) =
-      preprocess(sc, sqlContext,lemmatized, 10000)
-    corpus.cache()
-    val actualCorpusSize = corpus.count()
-    val actualVocabSize = vocabArray.length
-    val ldaModel = new LDA() //.setOptimizer(new OnlineLDAOptimizer().setMiniBatchFraction(0.05 + 1.0 / cluster.count()))
-      .setMaxIterations(10).setK(50).run(corpus)
+    pipeList.add(new CharSequence2TokenSequence)
+    //....
+    pipeList.add(new TokenSequence2FeatureSequence)
 
-    val topicIndices = ldaModel.describeTopics(maxTermsPerTopic = 10)
-    val topics = topicIndices.map { case (terms, termWeights) =>
-      terms.zip(termWeights).map { case (term, weight) => (vocabArray(term.toInt), weight) }
-    }
-    topics.zipWithIndex.foreach { case (topic, i) =>
-      println(s"TOPIC $i")
-      topic.foreach { case (term, weight) =>
-        println(s"$term\t$weight")
-      }
-      println()
-    }
+    val training: InstanceList = new InstanceList(new SerialPipes(pipeList))
+
+    training.addThruPipe(new StringArrayIterator(ob1))
+
+    val numTopics = 50;
+    val model:ParallelTopicModel = new ParallelTopicModel(numTopics, 1.0, 0.01);
+
+    model.addInstances(training);
+    model.setNumThreads(Runtime.getRuntime.availableProcessors);
+    model.setNumIterations(10);
+    model.estimate();
+    printTopWords("top10", model, 10)
+
+  }
+
+  /**
+    * Prints the top {@code wordsPerTopic} words for each topic in the model
+    * and stores the topic words, with one topic per line, in {@code outFile}.
+    */
+  def printTopWords(outFile:String, topicModel:ParallelTopicModel,
+                    wordsPerTopic:Int) {
+    System.err.println("Printing top words")
+    val w = new PrintWriter(outFile)
+    topicModel.getTopWords(wordsPerTopic)
+      .map(_.mkString(" "))
+      .foreach(w.println)
+    w.close
   }
 
   def getLemmas(q: ArchiveRecord, stemmer: EnglishStemmer, stopwords: Broadcast[Set[String]]): Seq[String] = {
