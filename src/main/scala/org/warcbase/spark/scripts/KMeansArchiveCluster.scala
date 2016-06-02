@@ -45,7 +45,7 @@ class KMeansArchiveCluster(clusters: KMeansModel, tfidf: RDD[Vector], lemmatized
     accum.value
   }
 
-  def computeLDA(output: String, sc: SparkContext, numTopics: Int = 50, numWordsPerTopic: Int = 20, maxIteration: Int = 20) = {
+  def computeLDA(output: String, sc: SparkContext, numTopics: Int = 20, numWordsPerTopic: Int = 20, maxIteration: Int = 20) = {
     val accum = sc.accumulator(sc.emptyRDD[(Int, (Long, Seq[String], Double))]:
       RDD[(Int, (Long, Seq[String], Double))])(new RddAccumulator[(Int, (Long, Seq[String], Double))])
     println("1")
@@ -55,8 +55,8 @@ class KMeansArchiveCluster(clusters: KMeansModel, tfidf: RDD[Vector], lemmatized
     println("3")
     println(s"${clusterRdds.length}")
 
-    clusterRdds.par.foreach(c => {
-      val cluster = c._2.map(x=>x._1).persist()
+    //clusterRdds.par.foreach(c => {
+      val cluster = tfidf.persist()
       println(s"cluster size ${cluster.count()}")
       val corpus = cluster.zipWithIndex.map(_.swap).cache()
       val ldaModel = new LDA() //.setOptimizer(new OnlineLDAOptimizer().setMiniBatchFraction(0.05 + 1.0 / cluster.count()))
@@ -67,8 +67,8 @@ class KMeansArchiveCluster(clusters: KMeansModel, tfidf: RDD[Vector], lemmatized
       val topicWords = topicRdd.zipWithIndex().map(_.swap).flatMap(r => r._2._1.map(word => (r._1, word)))
       val topicScores = topicRdd.flatMap(r => r._2.map(word=>word))
       val topics = topicWords.zip(topicScores)
-      accum += topics.map(r => (c._1, (r._1._1, r._1._2.toList, r._2)))
-    })
+      accum += topics.map(r => (0, (r._1._1, r._1._2.toList, r._2)))
+    //})
     accum.value.partitionBy(new HashPartitioner(clusters.k)).map(_._2).mapPartitions(r=>{
       val dict:HashMap[Long, ListBuffer[String]] = new HashMap()
       r.map(r=>(r._1, r._2)).foreach(tuple=> {
