@@ -18,7 +18,7 @@ package org.warcbase.spark.rdd
 
 import org.apache.spark.rdd.RDD
 import org.warcbase.spark.archive.io.ArchiveRecord
-import org.warcbase.spark.matchbox.{DetectLanguage, ExtractDate, ExtractDomain, RemoveHTML}
+import org.warcbase.spark.matchbox._
 import org.warcbase.spark.matchbox.ExtractDate.DateComponent
 import org.warcbase.spark.matchbox.ExtractDate.DateComponent.DateComponent
 
@@ -35,6 +35,7 @@ object RecordRDD extends java.io.Serializable {
     */
   implicit class CountableRDD[T: ClassTag](rdd: RDD[T]) extends java.io.Serializable {
     def countItems(): RDD[(T, Int)] = {
+      RecordLoader
       rdd.map(r => (r, 1))
         .reduceByKey((c1, c2) => c1 + c2)
         .sortBy(f => f._2, ascending = false)

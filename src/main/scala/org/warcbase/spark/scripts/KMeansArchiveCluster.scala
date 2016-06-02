@@ -1,20 +1,28 @@
 package org.warcbase.spark.scripts
 
-import org.apache.spark.mllib.clustering.{KMeansModel, LDA}
+import org.apache.spark.mllib.clustering.{OnlineLDAOptimizer, KMeansModel, LDA}
 import org.apache.spark.mllib.feature.HashingTF
 import org.apache.spark.mllib.linalg.{Vector, Vectors}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.{AccumulatorParam, HashPartitioner, SparkContext}
 import org.warcbase.spark.utils.RddAccumulator
-import scala.collection.mutable.{HashMap, ListBuffer, ArrayBuffer}
+
+import scala.collection.mutable.{ArrayBuffer, HashMap, ListBuffer}
 
 
 class KMeansArchiveCluster(clusters: KMeansModel, tfidf: RDD[Vector], lemmatized: RDD[Seq[String]],
-                           rec: RDD[String]) extends Serializable{
+                           rec: RDD[(String)]) extends Serializable{
   val hashingTF = new HashingTF()
   lazy val allWords = lemmatized.flatMap(seq => seq.map(f=>f)).persist()
   lazy val hashIndexToTerm = allWords.map(s=>(hashingTF.indexOf(s), s)).distinct().cache()
   lazy val clusterRdds = getClusterRdds()
+
+  implicit object ArrayAccumulator extends AccumulatorParam[ArrayBuffer[(Int, (List[String], List[String]))]] {
+    def zero(m: ArrayBuffer[(Int, (List[String], List[String]))]) =
+      new ArrayBuffer[(Int, (List[String], List[String]))]
+    def addInPlace(m1: ArrayBuffer[(Int, (List[String], List[String]))]
+                   , m2: ArrayBuffer[(Int, (List[String], List[String]))]) = m1 ++ m2
+  }
 
   private def getClusterRdds() = {
     val rdds = new ArrayBuffer[(Int, RDD[(Vector, String)])]
@@ -22,11 +30,12 @@ class KMeansArchiveCluster(clusters: KMeansModel, tfidf: RDD[Vector], lemmatized
     for (i <- 0 to clusters.k-1) {
       rdds += Pair(i, merged.filter(v => clusters.predict(v._1) == i).persist())
     }
+    println(rdds(1))
     rdds
   }
 
   def getSampleDocs(sc: SparkContext, numDocs: Int=10): RDD[(Int, String)] ={
-    val accum = sc.accumulator(sc.emptyRDD[(Int, String)]: RDD[(Int, String)])(new RddAccumulator[(Int, String)])
+    val accum = sc.accumulator(sc.emptyRDD: RDD[(Int, String)])(new RddAccumulator[(Int, String)])
     clusterRdds.par.foreach(c => {
       val cluster = c._2
       val p = clusters.clusterCenters(c._1)
@@ -36,19 +45,22 @@ class KMeansArchiveCluster(clusters: KMeansModel, tfidf: RDD[Vector], lemmatized
     accum.value
   }
 
-  def saveSampleDocs(output: String, sc: SparkContext, numDocs: Int=10) = {
-    getSampleDocs(sc, numDocs).partitionBy(new HashPartitioner(clusters.k)).map(r=>r._2).saveAsTextFile(output)
-    this
-  }
-
-  def computeLDA(output: String, sc: SparkContext, numTopics: Int = 5, numWordsPerTopic: Int = 12) = {
+  def computeLDA(output: String, sc: SparkContext, numTopics: Int = 50, numWordsPerTopic: Int = 20, maxIteration: Int = 20) = {
     val accum = sc.accumulator(sc.emptyRDD[(Int, (Long, Seq[String], Double))]:
       RDD[(Int, (Long, Seq[String], Double))])(new RddAccumulator[(Int, (Long, Seq[String], Double))])
+    println("1")
+    println(s"${allWords.count()}")
+    println("2")
+    println(s"${hashIndexToTerm.count()}")
+    println("3")
+    println(s"${clusterRdds.length}")
+
     clusterRdds.par.foreach(c => {
       val cluster = c._2.map(x=>x._1).persist()
       println(s"cluster size ${cluster.count()}")
       val corpus = cluster.zipWithIndex.map(_.swap).cache()
-      val ldaModel = new LDA().setK(numTopics).run(corpus)
+      val ldaModel = new LDA() //.setOptimizer(new OnlineLDAOptimizer().setMiniBatchFraction(0.05 + 1.0 / cluster.count()))
+          .setMaxIterations(maxIteration).setK(numTopics).run(corpus)
       val topicArr:Array[(Array[Int], Array[Double])] = ldaModel.describeTopics(numWordsPerTopic)
       val topicRdd:RDD[(Array[Seq[String]], Array[Double])] = sc.parallelize(
         topicArr.map(topic => (topic._1.map(index => hashIndexToTerm.lookup(index)), topic._2))).cache()
@@ -69,16 +81,25 @@ class KMeansArchiveCluster(clusters: KMeansModel, tfidf: RDD[Vector], lemmatized
     this
   }
 
-  def topNWords(output: String, sc: SparkContext, limit: Int = 10) = {
-    val accum = sc.accumulator(sc.emptyRDD[(Int, (Double, Seq[String]))]:
-      RDD[(Int, (Double, Seq[String]))])(new RddAccumulator[(Int, (Double, Seq[String]))])
+  def topNWords(output: String, sc: SparkContext, limit: Int = 20, numDocs: Int = 20) = {
+    val accum = sc.accumulator(new ArrayBuffer[(Int, (List[String], List[String]))])(ArrayAccumulator)
     clusterRdds.par.foreach(c => {
-      val v = c._1
-      val cluster = clusters.clusterCenters(v)
-      val topWords = sc.parallelize(cluster.toArray).zipWithIndex.takeOrdered(limit)(Ordering[Double].reverse.on(x=>x._1));
-      accum += sc.parallelize(topWords.map{ case (k, i) => (v, (k, hashIndexToTerm.lookup(i.toInt)))})
+      val cluster = c._2
+      val clusterNum = c._1
+      val clusterCenter = clusters.clusterCenters(clusterNum)
+      val docs = cluster.map(r => (Vectors.sqdist(clusterCenter, r._1), r._2)).takeOrdered(numDocs)(Ordering[Double].on(x => x._1)).map(_._2)
+
+      val topWords = sc.parallelize(clusterCenter.toArray).zipWithIndex.takeOrdered(limit)(Ordering[Double].reverse.on(x=>x._1))
+        .map{ case (k, i) => hashIndexToTerm.lookup(i.toInt).mkString(",")}
+      accum += ArrayBuffer((clusterNum, (topWords.toList, docs.toList)))//.map(x=>x.mkString(","))))})
     })
-    accum.value.partitionBy(new HashPartitioner(clusters.k)).map(_._2).map(x=>(x._1, x._2.mkString(","))).saveAsTextFile(output)
+    val result = sc.parallelize(accum.value).partitionBy(new HashPartitioner(clusters.k)).map(_._2).saveAsTextFile(output)
+    this
+  }
+
+  @Deprecated
+  def saveSampleDocs(output: String, sc: SparkContext, numDocs: Int=10) = {
+    getSampleDocs(sc, numDocs).partitionBy(new HashPartitioner(clusters.k)).map(r=>r._2).saveAsTextFile(output)
     this
   }
 }
