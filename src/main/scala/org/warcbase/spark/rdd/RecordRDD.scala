@@ -17,6 +17,7 @@
 package org.warcbase.spark.rdd
 
 import org.apache.spark.rdd.RDD
+import org.jsoup.Jsoup
 import org.warcbase.spark.archive.io.ArchiveRecord
 import org.warcbase.spark.matchbox._
 import org.warcbase.spark.matchbox.ExtractDate.DateComponent
