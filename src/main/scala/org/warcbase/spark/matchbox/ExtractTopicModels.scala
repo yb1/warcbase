@@ -20,17 +20,10 @@ import scala.collection.mutable.{ArrayBuffer, ListBuffer}
   * Created by youngbinkim on 6/2/16.
   */
 object ExtractTopicModels {
-  def apply(records: RDD[ArchiveRecord], output:String, sc: SparkContext, stopWords: String, numTopics: Int = 20) = {
-    val aa = new java.util.ArrayList[String]
-    aa.add("apple fruit orange banana strawberry computer television")
-    aa.add("mango fruit avengers hulk thor")
-
-
-    var ob1: Array[String] = new Array[String](aa.size)
-
+  def apply(records: RDD[ArchiveRecord], output:String, sc: SparkContext,
+            stopWords: String, numTopics: Int = 20, numIteration: Int = 10000, numTopWords: Int = 10) = {
     val rec = records.keepValidPages().persist()
-
-    ob1 = records.map(x=>Jsoup.parse(x.getContentString).body().text()).collect()// aa.toArray(ob1)
+    val ob1 = records.map(x=>Jsoup.parse(x.getContentString).body().text()).collect()// aa.toArray(ob1)
     val pipeList: java.util.ArrayList[Pipe] = new java.util.ArrayList[Pipe]
 
     pipeList.add( new CharSequenceLowercase() )
@@ -46,16 +39,12 @@ object ExtractTopicModels {
 
     model.addInstances(training)
 
-    // Use two parallel samplers, which each look at one half the corpus and combine
-    //  statistics after every iteration.
     model.setNumThreads(1)
 
-    // Run the model for 50 iterations and stop (this is for testing only,
-    //  for real applications, use 1000 to 2000 iterations)
-    model.setNumIterations(50)
+    model.setNumIterations(numIteration)
     model.estimate
 
-    val arr = model.getTopWords(10);
+    val arr = model.getTopWords(numTopWords);
     val res:ListBuffer[String] = new ListBuffer[String]
     for (i <- Range(0, arr.length)) {
       val words:ListBuffer[String] = new ListBuffer[String]
