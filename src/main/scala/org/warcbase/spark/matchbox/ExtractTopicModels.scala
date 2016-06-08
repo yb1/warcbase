@@ -30,7 +30,7 @@ object ExtractTopicModels {
     pipeList.add( new CharSequence2TokenSequence(java.util.regex.Pattern.compile("\\p{L}[\\p{L}\\p{P}]+\\p{L}")) )
     pipeList.add( new TokenSequenceRemoveStopwords(new java.io.File(stopWords), "UTF-8", false, false, false) );
     pipeList.add(new TokenSequence2FeatureSequence)
-
+    val start = System.currentTimeMillis();
     val training: InstanceList = new InstanceList(new SerialPipes(pipeList))
 
     training.addThruPipe(new StringArrayIterator(ob1))
@@ -42,6 +42,7 @@ object ExtractTopicModels {
     model.setNumThreads(1)
 
     model.setNumIterations(numIteration)
+
     model.estimate
 
     val arr = model.getTopWords(numTopWords);
@@ -54,5 +55,7 @@ object ExtractTopicModels {
       res += "topic " + i + ":\t" + words.mkString(",")
     }
     sc.parallelize(res, 1).saveAsTextFile(output)
+    val end = System.currentTimeMillis();
+    System.out.println("Topic Modelling finished in " + ((end-start)/1000) + " seconds.");
   }
 }
