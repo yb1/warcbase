@@ -55,6 +55,26 @@ object RecordRDD extends java.io.Serializable {
           || r.getUrl.endsWith("htm")
           || r.getUrl.endsWith("html"))
           && !r.getUrl.endsWith("robots.txt"))
+
+      val res = records.map(r => (r.getUrl, r.getContentString)).flatMap(x => ExtractImageLinks(x._1, x._2))
+        .map(imageUrl => {
+          try {
+            println(imageUrl)
+            val imageContent = new String(Jsoup.connect("https://web.archive.org/web/" + imageUrl).timeout(1000).execute().bodyAsBytes())
+            //val checksum = new String(MessageDigest.getInstance("MD5").digest(imageContent.getBytes))
+            //(checksum, (imageUrl, 1))
+            (imageContent, imageUrl)
+          }
+          catch {
+            case e: Exception =>
+              e.printStackTrace()
+              null
+          }
+        })
+        .filter(x=> x != null)
+        .reduceByKey((image1, image2) => (image1._1, image1._2 + image2._2))
+        .takeOrdered(limit)(Ordering[Int].on(x => -x._2._2))
+      res.foreach(println)
     }
 
     def keepMimeTypes(mimeTypes: Set[String]) = {
