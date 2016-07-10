@@ -2,7 +2,7 @@
 [http://geocities.com/EnchantedForest/Fountain/2082/cottage/pics/robbers_retreat.jpg](http://web.archive.org/web/http://geocities.com/EnchantedForest/Fountain/2082/cottage/pics/robbers_retreat.jpg)	36
 [http://geocities.com/EnchantedForest/Glade/7208/RN.jpg](http://web.archive.org/web/http://geocities.com/EnchantedForest/Glade/7208/RN.jpg)	34
 [http://geocities.com/EnchantedForest/Meadow/1094/ehaward.jpg](http://web.archive.org/web/http://geocities.com/EnchantedForest/Meadow/1094/ehaward.jpg)	33
-[http://geocities.com/EnchantedForest/Dell/4588/efcl.jpg](http://web.archive.org/web/http://geocities.com/EnchantedForest/Dell/4588/efcl.jpg)28
+[http://geocities.com/EnchantedForest/Dell/4588/efcl.jpg](http://web.archive.org/web/http://geocities.com/EnchantedForest/Dell/4588/efcl.jpg) 28
 [http://geocities.com/EnchantedForest/Fountain/6601/efnext.jpg](http://web.archive.org/web/http://geocities.com/EnchantedForest/Fountain/6601/efnext.jpg)	28
 [http://geocities.com/EnchantedForest/Creek/3435/efwebrings/efring2.jpg](http://web.archive.org/web/http://geocities.com/EnchantedForest/Creek/3435/efwebrings/efring2.jpg)	26
 [http://geocities.com/EnchantedForest/Tower/4396/ZSC-Dateien/image001.jpg](http://web.archive.org/web/http://geocities.com/EnchantedForest/Tower/4396/ZSC-Dateien/image001.jpg)	26
