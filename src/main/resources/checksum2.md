@@ -6,7 +6,7 @@
 
 [http://geocities.com/EnchantedForest/Meadow/1094/ehaward.jpg](http://web.archive.org/web/http://geocities.com/EnchantedForest/Meadow/1094/ehaward.jpg)	33
 
-[http://geocities.com/EnchantedForest/Dell/4588/efcl.jpg](http://web.archive.org/web/http://geocities.com/EnchantedForest/Dell/4588/efcl.jpg)28
+[http://geocities.com/EnchantedForest/Dell/4588/efcl.jpg](http://web.archive.org/web/http://geocities.com/EnchantedForest/Dell/4588/efcl.jpg) 28
 
 [http://geocities.com/EnchantedForest/Fountain/6601/efnext.jpg](http://web.archive.org/web/http://geocities.com/EnchantedForest/Fountain/6601/efnext.jpg)	28
 
@@ -2990,7 +2990,7 @@
 
 [http://geocities.com/EnchantedForest/Dell/1335/Graphics/Sets/thumbnail_5.jpg](http://web.archive.org/web/http://geocities.com/EnchantedForest/Dell/1335/Graphics/Sets/thumbnail_5.jpg)	3
 
-[http://geocities.com/EnchantedForest/9589/rossthumb.jpg](http://web.archive.org/web/http://geocities.com/EnchantedForest/9589/rossthumb.jpg)3
+[http://geocities.com/EnchantedForest/9589/rossthumb.jpg](http://web.archive.org/web/http://geocities.com/EnchantedForest/9589/rossthumb.jpg) 3
 
 [http://geocities.com/EnchantedForest/Dell/7027/Graffiti/16.jpg](http://web.archive.org/web/http://geocities.com/EnchantedForest/Dell/7027/Graffiti/16.jpg)	3
 
