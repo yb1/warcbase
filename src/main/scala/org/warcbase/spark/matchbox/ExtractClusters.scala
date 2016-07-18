@@ -61,7 +61,7 @@ object ExtractClusters {
   }
 
   def getLemmas(q: ArchiveRecord, stemmer: EnglishStemmer, stopwords: Broadcast[Set[String]]): Seq[String] = {
-    val text = Jsoup.parse(q.getContentString).select("body").first().text()
+    val text = ExtractBoilerpipeText(Jsoup.parse(RemoveHttpHeader(q.getContentString)).select("body").first().text()).toString
     val lemmas = new ListBuffer[String]()
     val words = text.split("\\s")
     for (word <- words){

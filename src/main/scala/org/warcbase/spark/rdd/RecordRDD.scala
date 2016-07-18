@@ -58,7 +58,7 @@ object RecordRDD extends java.io.Serializable {
           || r.getUrl.endsWith("html"))
           && !r.getUrl.endsWith("robots.txt"))
     }
-
+    
     def keepMimeTypes(mimeTypes: Set[String]) = {
       rdd.filter(r => mimeTypes.contains(r.getMimeType))
     }

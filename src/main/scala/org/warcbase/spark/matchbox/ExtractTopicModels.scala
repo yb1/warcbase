@@ -26,9 +26,9 @@ object ExtractTopicModels {
 
   def apply(records: RDD[ArchiveRecord], output:String, sc: SparkContext,
             stopWords: String, numTopics: Int = 20, numIteration: Int = 80, numTopWords: Int = 10) = {
-    val rec:RDD[(String, String)] = records.keepValidPages().map(x=> (x.getUrl, ExtractBoilerpipeText(x.getContentString).toString)).persist()
+    val rec:RDD[(String, String)] = records.keepValidPages().map(x=> (x.getUrl, RemoveHttpHeader(x.getContentString))).persist()
     val urls:RDD[(Long, String)] = rec.map(x=>x._1).zipWithIndex().map(_.swap).persist()
-    val body:RDD[String] = rec.map(x=>Jsoup.parse(x._2).body().text()).persist()
+    val body:RDD[String] = rec.map(x=> ExtractBoilerpipeText(Jsoup.parse(x._2).body().text()).toString).persist()
     val ob1 = body.filter(str=>DetectLanguage(str)=="en").collect()// aa.toArray(ob1)
     val pipeList: java.util.ArrayList[Pipe] = new java.util.ArrayList[Pipe]
     //LanguageIdentifier
